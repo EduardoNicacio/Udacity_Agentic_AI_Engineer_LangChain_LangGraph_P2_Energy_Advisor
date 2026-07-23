@@ -9,9 +9,10 @@ load_dotenv()
 
 
 class Agent:
-    def __init__(self, instructions:str, model:str="gpt-4o-mini"):
+    def __init__(self, instructions: str, model: str = "gpt-4o-mini"):
+        self.instructions = instructions
+        self.model_name = model
 
-        # Initialize the LLM
         llm = ChatOpenAI(
             model=model,
             temperature=0.0,
@@ -19,7 +20,6 @@ class Agent:
             api_key=os.getenv("VOCAREUM_API_KEY")
         )
 
-        # Create the Energy Advisor agent
         self.graph = create_react_agent(
             name="energy_advisor",
             prompt=SystemMessage(content=instructions),
@@ -27,38 +27,27 @@ class Agent:
             tools=TOOL_KIT,
         )
 
-    def invoke(self, question: str, context:str=None) -> str:
-        """
-        Ask the Energy Advisor a question about energy optimization.
-        
-        Args:
-            question (str): The user's question about energy optimization
-            location (str): Location for weather and pricing data
-        
-        Returns:
-            str: The advisor's response with recommendations
-        """
-        
+    def invoke(self, question: str, context: str = None) -> dict:
         messages = []
         if context:
-            # Add some context to the question as a system message
-            messages.append(
-                ("system", context)
+            messages.append(("system", context))
+
+        messages.append(("user", question))
+
+        try:
+            response = self.graph.invoke(
+                input={
+                    "messages": messages
+                }
             )
-
-        messages.append(
-            ("user", question)
-        )
-        
-        # Get response from the agent
-        response = self.graph.invoke(
-            input= {
-                "messages": messages
+            return response
+        except Exception as e:
+            error_msg = f"Agent encountered an error: {str(e)}"
+            return {
+                "messages": [
+                    {"role": "system", "content": error_msg}
+                ]
             }
-        )
-        
-        return response
 
-    def get_agent_tools(self):
-        """Get list of available tools for the Energy Advisor"""
+    def get_agent_tools(self) -> list:
         return [t.name for t in TOOL_KIT]
