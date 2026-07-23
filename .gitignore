@@ -11,6 +11,7 @@ env.bak/
 venv.bak/
 .DS_Store
 .env
+.venv/
 
 # Virtual Environment
 bin/
